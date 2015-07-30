@@ -8,19 +8,34 @@
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.8"/>
     <property name="source" value="1.8"/>
-    <path id="slf4j&amp;log4j.userclasspath">
+    <path id="slf4j-log4j.userclasspath">
         <pathelement location="D:/eclipse/ImportLibs/slf4j-1.7.12/slf4j-api-1.7.12.jar"/>
         <pathelement location="D:/eclipse/ImportLibs/slf4j-1.7.12/slf4j-log4j12-1.7.12.jar"/>
         <pathelement location="D:/eclipse/ImportLibs/apache-log4j-1.2.17/log4j-1.2.17.jar"/>
     </path>
+    <path id="httpclient4.5.userclasspath">
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/httpclient-4.5.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/httpcore-4.4.1.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/commons-codec-1.9.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/commons-logging-1.2.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/fluent-hc-4.5.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/httpclient-4.5.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/httpclient-cache-4.5.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/httpclient-win-4.5.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/httpmime-4.5.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/jna-4.1.0.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/jna-platform-4.1.0.jar"/>
+    </path>
     <path id="mole.classpath">
         <pathelement location="bin"/>
-        <path refid="slf4j&amp;log4j.userclasspath"/>
+        <path refid="slf4j-log4j.userclasspath"/>
+        <path refid="httpclient4.5.userclasspath"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
         <copy includeemptydirs="false" todir="bin">
             <fileset dir="src">
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
@@ -51,5 +66,10 @@
     <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
+    </target>
+    <target name="mole.Test">
+        <java classname="jun.mole.collector.Weibo" failonerror="true" fork="yes">
+            <classpath refid="mole.classpath"/>
+        </java>
     </target>
 </project>
