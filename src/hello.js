@@ -1,1 +1,3 @@
-print("hello, world");
+function fun1(a,b){
+	return a+b;
+}

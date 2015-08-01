@@ -1,32 +1,67 @@
 package jun.mole.collector;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 
+import javax.script.Bindings;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
+import javax.script.SimpleScriptContext;
+
+import jun.mole.collector.bom.BOMDocument;
+import jun.mole.collector.bom.BOMLocation;
+import jun.mole.collector.bom.BOMWindow;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.xerces.xni.parser.XMLParserConfiguration;
+import org.cyberneko.html.HTMLConfiguration;
+import org.cyberneko.html.parsers.DOMFragmentParser;
+import org.cyberneko.html.parsers.DOMParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.DocumentFragment;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class Weibo {
 	private static final Logger logger = LoggerFactory.getLogger(Weibo.class);
 	private static final String WEIBO_URL = "http://weibo.com/u/1696137703";
 
-	public static void fetch(String url, OutputStream output)
-			throws IOException {
+	ScriptEngineManager manager = new ScriptEngineManager();
+	ScriptEngine nashorn = manager.getEngineByName("nashorn");
+	Document doc;
+
+	ArrayList<String> jsList = new ArrayList<String>();
+
+	StringBuilder jsCodes = new StringBuilder();
+
+	public void fetch(String url) throws Exception {
 		CloseableHttpClient client = null;
 		CloseableHttpResponse response = null;
 
@@ -34,7 +69,7 @@ public class Weibo {
 			client = HttpClients.createDefault();
 
 			RequestConfig requestConfig = RequestConfig.custom()
-					.setSocketTimeout(1000).setConnectTimeout(1000).build();
+					.setSocketTimeout(3000).setConnectTimeout(3000).build();
 			HttpGet httpGet = new HttpGet(url);
 
 			httpGet.setConfig(requestConfig);
@@ -50,39 +85,27 @@ public class Weibo {
 					"zh,zh-CN;q=0.8,en-US;q=0.6,en;q=0.4");
 			httpGet.addHeader(
 					"Cookie",
-					"SINAGLOBAL=868032223079.3535.1426339716301; "
-							+ "wvr=6; SUHB=0BLof5x0GZnlwJ; UOR=www.douyutv.com,weibo.com,login.sina.com.cn; "
-							+ "YF-Page-G0=0dccd34751f5184c59dfe559c12ac40a; SUB=_2AkMi5SuHdcNhrABTm_4cxWjiaYhH-jjGieTAAH_pJhExUSp-7SRJAKkdtmYEnyRqic-kO0g9DpAV; "
-							+ "SUBP=0033WrSXqPxfM72wWs9jqgMF55529P9D9WWNM4IRU0_Xi6eZ99Hpg_Kd5JpX5K-t; _s_tentry=passport.weibo.com; Apache=5056501722428.947.1438229682320; "
-							+ "ULV=1438229682332:46:3:3:5056501722428.947.1438229682320:1438166146968; YF-Ugrow-G0=69bfe9ce876ec10bd6de7dcebfb6883e; "
-							+ "TC-Ugrow-G0=370f21725a3b0b57d0baaf8dd6f16a18");
-
-			System.out.println("Request Headers:");
-			for (Header h : httpGet.getAllHeaders()) {
-				System.out.format("%s: %s\n", h.getName(), h.getValue());
-			}
+					"SUB=_2AkMi5WmRf8NjqwJRmPkcxGnlZYx2yQDEiebDAHzsJxIxHnMF7CQiCFTxK9pKAV3-mn_6QF4twq4a; SUBP=0033WrSXqPxfM72-Ws9jqgMF55z29P9D9W5ZezrznMXdl.ag65_Jx125; SINAGLOBAL=5936069602612.406.1438246578558; _s_tentry=developer.51cto.com; UOR=,,sishuok.com; YF-Page-G0=2d32d406b6cb1e7730e4e69afbffc88c; Apache=976566986646.5032.1438256824704; ULV=1438256824716:2:2:2:976566986646.5032.1438256824704:1438246578566");
 
 			response = client.execute(httpGet);
-
-			System.out.println(response.getStatusLine().toString());
-
-			System.out.println("Response Headers:");
-			Header[] headers = response.getAllHeaders();
-			for (int i = 0; i < headers.length; ++i) {
-				System.out.println(headers[i]);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+				System.out.println("Connect failed.");
+				return;
 			}
+			DOMParser parser = new DOMParser();
 
-			HttpEntity entity = response.getEntity();
+			parser.setFeature(
+					"http://cyberneko.org/html/features/augmentations", true);
+			parser.setProperty(
+					"http://cyberneko.org/html/properties/names/elems", "lower");
+			parser.setProperty(
+					"http://cyberneko.org/html/properties/default-encoding",
+					"utf-8");
+			parser.parse(new InputSource(response.getEntity().getContent()));
 
-			if (entity != null) {
-				System.out.println("Content-Type: " + entity.getContentType());
-				System.out.println("Content-Length: "
-						+ entity.getContentLength());
-				entity.writeTo(output);
-			}
+			doc = parser.getDocument();
+			doc.setDocumentURI(WEIBO_URL);
 
-		} catch (ProtocolException ex) {
-			logger.debug(ex.getMessage());
 		} finally {
 			if (response != null)
 				response.close();
@@ -90,6 +113,93 @@ public class Weibo {
 				client.close();
 		}
 
+	}
+
+	static void createDOM(InputStream in) throws Exception {
+		DOMParser parser = new DOMParser();
+
+		parser.setFeature("http://cyberneko.org/html/features/augmentations",
+				true);
+		parser.setProperty("http://cyberneko.org/html/properties/names/elems",
+				"lower");
+		parser.setProperty(
+				"http://cyberneko.org/html/properties/default-encoding",
+				"utf-8");
+		parser.parse(new InputSource(in));
+
+		Document doc = parser.getDocument();
+		NodeList jsNodes = doc.getElementsByTagName("script");
+		for (int i = 0; i < jsNodes.getLength(); ++i) {
+			System.out.println(jsNodes.item(i).toString());
+		}
+
+	}
+
+	void evalJs(Node jsFragment) throws Exception {
+		if (jsFragment.getNodeType() != Node.ELEMENT_NODE) {
+			System.out.println("not a  element node");
+			return;
+		}
+		if (!((Element) jsFragment).getTagName().toLowerCase().equals("script")) {
+			System.out.println("not a  javascript element node");
+			return;
+		}
+		String jsText = jsFragment.getFirstChild().getNodeValue();
+		System.out.println("Eval... ");
+		System.out.println(jsText);
+		Object ret = nashorn.eval(jsText);
+		System.out.println("Result: " + ret);
+	}
+
+	void evalAllJs() throws Exception {
+		if (doc == null) {
+			System.out.println("doc == null");
+			return;
+		}
+
+		extractAllJs();
+
+		for (int i = 0; i < jsList.size(); ++i) {
+			System.out.format("eval %d : %s\n", i, jsList.get(i));
+			if (i == 5) {
+				nashorn.eval("print(FM.view)");
+			}
+			nashorn.eval(jsList.get(i));
+		}
+		// nashorn.eval(jsCodes.toString());
+
+	}
+
+	void extractAllJs() throws IOException, ScriptException {
+		NodeList nodelist = doc.getElementsByTagName("script");
+		for (int i = 0; i < nodelist.getLength(); ++i) {
+			if (nodelist.item(i).getFirstChild().getNodeType() == Node.TEXT_NODE) {
+				// jsCodes.append(nodelist.item(i).getFirstChild().getNodeValue());
+				// jsCodes.append('\n');
+
+				jsList.add(nodelist.item(i).getFirstChild().getNodeValue());
+			}
+		}
+		// FileWriter writer = new FileWriter("jsCode.js");
+		// writer.write(jsCodes.toString());
+		// writer.close();
+	}
+
+	private void createBOM() throws MalformedURLException,
+			FileNotFoundException, ScriptException {
+		Bindings bindings = new SimpleBindings();
+		BOMDocument bomDoc = new BOMDocument(doc);
+		// bindings.put("window", bomWindow);
+		// bindings.put("document", bomWindow.doc);
+		// bindings.put("location", bomWindow.location);
+		// bindings.put("navigator", bomWindow.navigator);
+		bindings.put("curDoc", bomDoc);
+		// bindings.put("document.location", bomDoc.location);
+		// bindings.put("curURL", new URL(WEIBO_URL));
+
+		nashorn.setBindings(bindings, ScriptContext.GLOBAL_SCOPE);
+
+		nashorn.eval(new FileReader("src/bom.js"));
 	}
 
 	static void download() throws Exception {
@@ -116,21 +226,35 @@ public class Weibo {
 		inStream.close();
 	}
 
+	private static void printDoc0(Node node, PrintWriter out) {
+		out.printf("NodeName: %s, NodeValue: %s\n", node.getNodeName(),
+				node.getNodeValue());
+		NodeList nodeList = node.getChildNodes();
+		for (int i = 0; i < nodeList.getLength(); ++i) {
+			out.printf("\t");
+			printDoc0(nodeList.item(i), out);
+		}
+	}
+
+	public void printDoc(PrintWriter out) {
+		printDoc0(doc, out);
+	}
+
 	public static void main(String args[]) throws Exception {
 		logger.info("Enter main");
 
-		ScriptEngineManager manager = new ScriptEngineManager();
-		ScriptEngine nashorn = manager.getEngineByName("nashorn");
-		nashorn.eval("load('src/hello.js')");
+		Weibo weibo = new Weibo();
+		weibo.fetch(Weibo.WEIBO_URL);
 
-		OutputStream file = new FileOutputStream("aaa.txt");
-		try {
-			fetch(WEIBO_URL, file);
-			file.close();
-		} finally {
-			file.close();
-		}
-
+		// weibo.nashorn.eval("print(fun1(1,2))");
+		weibo.createBOM();
+		// weibo.nashorn.eval("print(curDoc)");
+		// weibo.nashorn.eval("print(curURL)");
+		// weibo.nashorn.eval("print(document.getFirstChild())");
+		// weibo.nashorn.eval("print(document.location)");
+		// weibo.evalAllJs();
+		weibo.nashorn.eval(new FileReader("src/hello.js"));
 		logger.info("Leave main");
 	}
+
 }

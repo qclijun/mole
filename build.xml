@@ -26,10 +26,19 @@
         <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/jna-4.1.0.jar"/>
         <pathelement location="D:/eclipse/ImportLibs/httpcomponents-client-4.5/lib/jna-platform-4.1.0.jar"/>
     </path>
+    <path id="nekohtml.userclasspath">
+        <pathelement location="D:/eclipse/ImportLibs/nekohtml-1.9.21/nekohtml.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/xerces-2_11_0/resolver.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/xerces-2_11_0/serializer.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/xerces-2_11_0/xercesImpl.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/xerces-2_11_0/xercesSamples.jar"/>
+        <pathelement location="D:/eclipse/ImportLibs/xerces-2_11_0/xml-apis.jar"/>
+    </path>
     <path id="mole.classpath">
         <pathelement location="bin"/>
         <path refid="slf4j-log4j.userclasspath"/>
         <path refid="httpclient4.5.userclasspath"/>
+        <path refid="nekohtml.userclasspath"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
