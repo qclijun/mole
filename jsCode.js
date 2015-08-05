@@ -2,7 +2,7 @@
 ~function(l){var h = l.href, r = l.protocol +'//'+ l.host, i = h.indexOf('#!'), s = i != -1 ? h.substr(i + 2) : '';if ( (new RegExp("/[a-zA-Z0-9\\.\\-~!@#$%^&*+?:_/=<>]+", "gi")).test(s) ) l.replace(r + s);}(location)
 
 
-try{document.execCommand("BackgroundImageCache", false, true);}catch(e){}
+try{document.execCommand("BackgroundImageCache", false, true);}catch(e){};;;;;
 
 
 var $CONFIG = {};
